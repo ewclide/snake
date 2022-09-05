@@ -1,0 +1,19 @@
+{
+  "name": "ts-example",
+  "version": "1.0.0",
+  "description": "ts-example",
+  "author": "ewclide",
+  "license": "MIT",
+  "scripts": {
+    "start": "webpack-dev-server --mode development",
+    "build": "webpack --mode production"
+  },
+  "devDependencies": {
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.8.2",
+    "uglifyjs-webpack-plugin": "^1.2.7",
+    "webpack": "^4.29.6",
+    "webpack-cli": "^3.3.0",
+    "webpack-dev-server": "^3.11.0"
+  }
+}
