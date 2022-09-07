@@ -7,17 +7,19 @@ type onSnakeEat = (cookie: Segment) => void;
 type onSnakeDie = () => void;
 
 export class Snake {
-    static readonly LEFT = [-1, 0];
-    static readonly RIGHT = [1, 0];
-    static readonly TOP = [0, -1];
-    static readonly BOTTOM = [0, 1];
+    static readonly LEFT: Vector2Array = [-1, 0];
+    static readonly RIGHT: Vector2Array = [1, 0];
+    static readonly TOP: Vector2Array = [0, -1];
+    static readonly BOTTOM: Vector2Array = [0, 1];
 
     onEat: onSnakeEat = () => undefined;
     onDie: onSnakeDie = () => undefined;
-    direction: number[] = Snake.LEFT;
+
     alive: boolean = true;
     speed: number = 0.15;
     segments: Segment[];
+    direction: Direction = Direction.LEFT;
+    movement: Vector2Array = Snake.LEFT;
 
     private _game: Game;
     private _time: number;
@@ -36,7 +38,8 @@ export class Snake {
     reset(position: Vector2Array, length: number): void {
         this._time = 0
         this.speed = 0.15;
-        this.direction = Snake.LEFT;
+        this.movement = Snake.LEFT;
+        this.direction = Direction.LEFT;
         this.segments = [];
 
         const pos: Vector2Array = [...position];
@@ -55,7 +58,26 @@ export class Snake {
         }
     }
 
-    fail(): void {
+    eat(cookie: Segment): void {
+        if (!this.alive) { return; }
+
+        const [head] = this.segments;
+        if (head == cookie) { return; }
+
+        const [dx, dy] = this.movement;
+        const [hx, hy] = head.position;
+        const [cx, cy] = cookie.position;
+
+        if (hx + dx == cx && hy + dy == cy) {
+            if (cookie.owner === this) {
+                this._fail();
+            } else {
+                this._consume(cookie);
+            }
+        }
+    }
+
+    private _fail(): void {
         this.onDie();
         this.alive = false;
         for (const segment of this.segments) {
@@ -63,27 +85,10 @@ export class Snake {
         }
     }
 
-    consume(cookie: Segment): void {
+    private _consume(cookie: Segment): void {
         cookie.owner = this
         this.segments.unshift(cookie);
         this.onEat(cookie);
-    }
-
-    eat(cookie: Segment): void {
-        const [head] = this.segments;
-        if (head == cookie) { return; }
-
-        const [dx, dy] = this.direction;
-        const [hx, hy] = head.position;
-        const [cx, cy] = cookie.position;
-
-        if (hx + dx == cx && hy + dy == cy) {
-            if (cookie.owner === this) {
-                this.fail();
-            } else {
-                this.consume(cookie);
-            }
-        }
     }
 
     update(dt: number): void {
@@ -99,7 +104,7 @@ export class Snake {
 
         const [first] = this.segments;
         const [x, y] = first.position;
-        const [dx, dy] = this.direction;
+        const [dx, dy] = this.movement;
 
         let px = x + dx;
         if (px > this._game.fieldWidth) {
@@ -121,34 +126,52 @@ export class Snake {
     }
 
     reverse(): void {
-        const idx = this.segments.length - 1;
-        const last0 = this.segments[idx - 0];
-        const last1 = this.segments[idx - 1];
+        let direction = this.direction;
+        if (this.direction === Direction.TOP) {
+            direction = Direction.BOTTOM;
+        } else if (this.direction === Direction.BOTTOM) {
+            direction = Direction.TOP;
+        } else if (this.direction === Direction.LEFT) {
+            direction = Direction.RIGHT;
+        } else if (this.direction === Direction.RIGHT) {
+            direction = Direction.LEFT;
+        }
+
+        this.direction = direction;
+        this.movement = this._getMovement(direction);
         this.segments.reverse();
-        this.direction = [
-            last0.position[0] - last1.position[0],
-            last0.position[1] - last1.position[1]
-        ];
     }
 
     setDirection(direction: Direction): void {
-        let dir;
+        const movement = this._getMovement(direction);
+        if (this._isReverseMovement(movement)) {
+            this.segments.reverse();
+        }
+
+        this.direction = direction;
+        this.movement = movement;
+    }
+
+    private _isReverseMovement(movement: Vector2Array): boolean {
+        const [x1, y1] = this.movement;
+        const [x2, y2] = movement;
+        return x1 * x2 + y1 * y2 === -1;
+    }
+
+    private _getMovement(direction: Direction): Vector2Array {
+        let movement;
         if (direction === Direction.LEFT) {
-            dir = Snake.LEFT;
+            movement = Snake.LEFT;
         } else if (direction === Direction.RIGHT) {
-            dir = Snake.RIGHT;
+            movement = Snake.RIGHT;
         } else if (direction === Direction.TOP) {
-            dir = Snake.TOP;
+            movement = Snake.TOP;
         } else if (direction === Direction.BOTTOM) {
-            dir = Snake.BOTTOM;
+            movement = Snake.BOTTOM;
         } else {
             throw new Error();
         }
 
-        this.direction = dir;
-
-        if ((this.direction[0] + dir[0]) === 0 && (this.direction[1] + dir[1]) === 0) {
-            this.reverse();
-        }
+        return movement;
     }
 }
