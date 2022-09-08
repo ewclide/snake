@@ -37,11 +37,20 @@ const calcH = (p0: number, p1: number, w: number): number => {
     const x0 = p0 - y0 * w;
     const x1 = p1 - y1 * w;
 
+    const res = Math.abs(x1 - x0) + Math.abs(y1 - y0)
+    // console.log(
+    //     'H:', res,
+    //     'id0', p0, getCellCoords(p0, w),
+    //     'id1', p1, getCellCoords(p1, w)
+    // )
+
     // TODO: ability to move outside of borders
-    return Math.abs(x1 - x0) + Math.abs(y1 - y0);
+    return res;
 }
 
 const getNeighborId = (p: number, idx: number, w: number, h: number): number => {
+    if (p < 0) { return -1; }
+
     const y = Math.floor(p / w);
     const x = p - y * w;
 
@@ -79,13 +88,13 @@ function aStar(src: Vector2Array, dst: Vector2Array, w: number, h: number, obsta
 // 3) Сохраняем путь, двигаясь назад от целевой точки, проходя по указателям на родителей до тех пор, пока не дойдём до стартовой клетки.
 
     let srsId = getCellId(src, w);
-    let dstId = getCellId(src, w);
+    let dstId = getCellId(dst, w);
     const startCell = {
         id: srsId,
         parent: -1,
         G: 0,
-        H: 0,
-        F: 0
+        H: calcH(srsId, dstId, w),
+        F: calcH(srsId, dstId, w)
     }
 
     opened.set(srsId, startCell);
@@ -94,8 +103,10 @@ function aStar(src: Vector2Array, dst: Vector2Array, w: number, h: number, obsta
     let cur: Cell = startCell;
     let vv = 0;
     while (true) {
+        let len = Infinity;
         for (const cell of opened.values()) {
-            if (cell.F < cur.F) {
+            if (cell.F < len) {
+                len = cell.F;
                 cur = cell;
             }
         }
@@ -105,7 +116,8 @@ function aStar(src: Vector2Array, dst: Vector2Array, w: number, h: number, obsta
 
         for (let i = 0; i < 4; i++) {
             const id = getNeighborId(cur.id, i, w, h);
-            if (id === -1) { continue; }
+
+            if (id < 0) { continue; }
             if (obstacles.has(id)) { continue; }
             if (closed.has(id)) { continue; }
 
@@ -114,7 +126,7 @@ function aStar(src: Vector2Array, dst: Vector2Array, w: number, h: number, obsta
                 // TODO: G alwayls equal 10 in that case
                 cell.parent = cur.id;
             } else {
-                const G = 10;
+                const G = 0;
                 const H = calcH(id, dstId, w);
                 const F = G + H;
                 const neighbor = {
@@ -136,7 +148,8 @@ function aStar(src: Vector2Array, dst: Vector2Array, w: number, h: number, obsta
     const path: Vector2Array[] = [];
     let cid = dstId;
     while (cid !== -1) {
-        const pc = all.get(cid)!;
+        const pc = all.get(cid);
+        if (pc === undefined) { break; }
         path.push(getCellCoords(cid, w));
         cid = pc.parent;
     }
@@ -150,6 +163,7 @@ export class Game {
     private _time: Time;
     private _timeout: number = 0;
     private _stopped: boolean = false;
+    private _path: Vector2Array[] = [];
     readonly renderer: Renderer;
 
     cookiesCount: number = 25;
@@ -210,9 +224,10 @@ export class Game {
             Math.round(this.fieldWidth / 2),
             Math.round(this.fieldHeight / 2)
         ];
-        this._snake = new Snake(this, startPotision, this.startLength)
+        this._snake = new Snake(this, startPotision, this.startLength);
         this._snake.onDie = this._onSnakeDie;
         this._snake.onEat = this._onSnakeEat;
+        this._snake.onMove = this._onSnakeMove;
     }
 
     private _createCanvas(): HTMLCanvasElement {
@@ -235,6 +250,29 @@ export class Game {
     private _onSnakeEat = (cookie: Segment): void => {
         this._cookies.delete(cookie);
         this.spawnCookie()
+    }
+
+    private _onSnakeMove = (): void => {
+        const p = this._path.pop();
+        if (p !== undefined) {
+            const ps = this._snake.segments[0].position;
+            const x = p[0] - ps[0];
+            const y = p[1] - ps[1];
+
+            let dir = this._snake.direction;
+            if (x === 1 && y === 0) {
+                dir = Direction.RIGHT;
+            } else if (x === 0 && y === 1) {
+                dir = Direction.BOTTOM;
+            } else if (x === -1 && y === 0) {
+                dir = Direction.LEFT;
+            } else if (x === 0 && y === -1) {
+                dir = Direction.TOP;
+            }
+            console.log(ps, p, Direction[dir])
+
+            this._snake.setDirection(dir);
+        }
     }
 
     private _onWindowResize = (): void => {
@@ -271,7 +309,23 @@ export class Game {
 
         const [head] = this._snake.segments;
         const path = aStar(head.position, [x, y], this.fieldWidth, this.fieldHeight, new Set());
+        path.pop();
+        this._path = path;
         console.log(path)
+
+        // this._renderPath(path);
+    }
+
+    private _renderPath(path: Vector2Array[]): void {
+        for (const p of path) {
+            this.renderer.drawRectangle(
+                p[0] * this.gridSize,
+                p[1] * this.gridSize,
+                this.gridSize,
+                this.gridSize,
+                [1, 1, 1]
+            );
+        }
     }
 
     private _loop = () => {

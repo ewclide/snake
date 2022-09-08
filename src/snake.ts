@@ -5,6 +5,7 @@ import { toGreyScale } from './utils';
 
 type onSnakeEat = (cookie: Segment) => void;
 type onSnakeDie = () => void;
+type onSnakeMove = () => void;
 
 export class Snake {
     static readonly LEFT: Vector2Array = [-1, 0];
@@ -14,6 +15,7 @@ export class Snake {
 
     onEat: onSnakeEat = () => undefined;
     onDie: onSnakeDie = () => undefined;
+    onMove: onSnakeMove = () => undefined;
 
     alive: boolean = true;
     speed: number = 0.15;
@@ -101,6 +103,8 @@ export class Snake {
         } else {
             return;
         }
+
+        this.onMove();
 
         const [first] = this.segments;
         const [x, y] = first.position;
