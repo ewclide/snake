@@ -16,6 +16,134 @@ function toggleFullScreen() {
     }
 }
 
+interface Cell {
+    id: number;
+    parent: number;
+    G: number;
+    H: number;
+    F: number;
+}
+
+const getCellId = (p: Vector2Array, w: number) => p[1] * w + p[0];
+const getCellCoords = (p: number, w: number): Vector2Array => {
+    const y = Math.floor(p / w);
+    const x = p - y * w;
+    return [x, y];
+};
+
+const calcH = (p0: number, p1: number, w: number): number => {
+    const y0 = Math.floor(p0 / w);
+    const y1 = Math.floor(p1 / w);
+    const x0 = p0 - y0 * w;
+    const x1 = p1 - y1 * w;
+
+    // TODO: ability to move outside of borders
+    return Math.abs(x1 - x0) + Math.abs(y1 - y0);
+}
+
+const getNeighborId = (p: number, idx: number, w: number, h: number): number => {
+    const y = Math.floor(p / w);
+    const x = p - y * w;
+
+    if (x < 0 || x >= w) { return -1; }
+    if (y < 0 || y >= h) { return -1; }
+
+    switch (idx) {
+        case 0: return y * w + (x - 1);
+        case 1: return (y - 1) * w + x;
+        case 2: return y * w + (x + 1);
+        case 3: return (y + 1) * w + x;
+        default: throw new Error();
+    }
+}
+
+function aStar(src: Vector2Array, dst: Vector2Array, w: number, h: number, obstacles: Set<number>): Vector2Array[] {
+    const all = new Map<number, Cell>();
+    const opened = new Map<number, Cell>();
+    const closed = new Map<number, Cell>();
+
+// 1) Добавить стартовую клетку в открытый список (при этом её значения G, H и F равны 0).
+// 2) Повторять следующие шаги:
+//     - Ищем в открытом списке клетку с наименьшим значением величины F, делаем её текущей.
+//     - Удаляем текущую клетку из открытого списка и помещаем в закрытый список.
+//     - Для каждой из соседних, к текущей клетке, клеток:
+//         - Если клетка непроходима или находится в закрытом списке, игнорируем её.
+//         - Если клетка не в открытом списке, то добавляем её в открытый список, при этом рассчитываем для неё значения G, H и F,
+//           и также устанавливаем ссылку родителя на текущую клетку.
+//         - Если клетка находится в открытом списке, то сравниваем её значение G со значением G таким,
+//           что если бы к ней пришли через текущую клетку. Если сохранённое в проверяемой клетке значение G больше нового,
+//           то меняем её значение G на новое, пересчитываем её значение F и изменяем указатель на родителя так, чтобы она указывала на текущую клетку.
+//     Останавливаемся, если:
+//         - В открытый список добавили целевую клетку (в этом случае путь найден).
+//         - Открытый список пуст (в этом случае к целевой клетке пути не существует).
+// 3) Сохраняем путь, двигаясь назад от целевой точки, проходя по указателям на родителей до тех пор, пока не дойдём до стартовой клетки.
+
+    let srsId = getCellId(src, w);
+    let dstId = getCellId(src, w);
+    const startCell = {
+        id: srsId,
+        parent: -1,
+        G: 0,
+        H: 0,
+        F: 0
+    }
+
+    opened.set(srsId, startCell);
+    all.set(srsId, startCell);
+
+    let cur: Cell = startCell;
+    let vv = 0;
+    while (true) {
+        for (const cell of opened.values()) {
+            if (cell.F < cur.F) {
+                cur = cell;
+            }
+        }
+
+        opened.delete(cur.id);
+        closed.set(cur.id, cur);
+
+        for (let i = 0; i < 4; i++) {
+            const id = getNeighborId(cur.id, i, w, h);
+            if (id === -1) { continue; }
+            if (obstacles.has(id)) { continue; }
+            if (closed.has(id)) { continue; }
+
+            const cell = opened.get(id);
+            if (cell !== undefined) {
+                // TODO: G alwayls equal 10 in that case
+                cell.parent = cur.id;
+            } else {
+                const G = 10;
+                const H = calcH(id, dstId, w);
+                const F = G + H;
+                const neighbor = {
+                    id,
+                    parent: cur.id,
+                    G, H, F
+                };
+
+                opened.set(id, neighbor);
+                all.set(id, neighbor)
+            }
+        }
+
+        if (opened.size === 0) { break; }
+        if (opened.has(dstId)) { break; }
+        if (vv++ > w * h) { break; }
+    }
+
+    const path: Vector2Array[] = [];
+    let cid = dstId;
+    while (cid !== -1) {
+        const pc = all.get(cid)!;
+        path.push(getCellCoords(cid, w));
+        cid = pc.parent;
+    }
+
+    return path;
+}
+
 export class Game {
     private _cookies: Set<Segment>;
     private _snake!: Snake;
@@ -25,7 +153,7 @@ export class Game {
     readonly renderer: Renderer;
 
     cookiesCount: number = 25;
-    startLength: number = 15;
+    startLength: number = 3;
     fieldWidth: number = 0;
     fieldHeight: number = 0;
     gridSize: number;
@@ -45,6 +173,7 @@ export class Game {
         this.fieldHeight = Math.floor(canvas.height / this.gridSize);
 
         document.body.addEventListener('keyup', this._onPressKey);
+        canvas.addEventListener('pointerup', this._onClick);
         window.addEventListener('resize', this._onWindowResize);
         // canvas.addEventListener('click', () => {
         //     canvas.requestPointerLock();
@@ -133,6 +262,16 @@ export class Game {
                 this._snake.setDirection(Direction.BOTTOM); break;
             default: break;
         }
+    }
+
+    private _onClick = (e: PointerEvent): void => {
+        const { clientX, clientY } = e;
+        const x = Math.floor(clientX / this.gridSize);
+        const y = Math.floor(clientY / this.gridSize);
+
+        const [head] = this._snake.segments;
+        const path = aStar(head.position, [x, y], this.fieldWidth, this.fieldHeight, new Set());
+        console.log(path)
     }
 
     private _loop = () => {
