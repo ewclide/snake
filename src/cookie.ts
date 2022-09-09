@@ -12,7 +12,8 @@ export class Cookie extends Segment {
             gridSize,
             gridSize,
             this.color,
-            this.selected
+            this.selected,
+            this._game.wayPointSize
         );
     }
 }

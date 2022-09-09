@@ -35,6 +35,7 @@ export class Game {
     fieldHeight: number = 0;
     gridSize: number;
     segmentsPerWidth: number;
+    wayPointSize: number;
 
     constructor() {
         const canvas = this._createCanvas();
@@ -48,6 +49,7 @@ export class Game {
         this.segmentsPerWidth = SEGMENTS_PER_WIDTH;
         this.fieldWidth = Math.floor(canvas.width / this.gridSize);
         this.fieldHeight = Math.floor(canvas.height / this.gridSize);
+        this.wayPointSize = Math.round(this.gridSize / 5);
 
         document.body.addEventListener('keyup', this._onPressKey);
         canvas.addEventListener('pointerup', this._onClick);
@@ -203,6 +205,8 @@ export class Game {
     private _selectCookie(pos: Vector2Array): boolean {
         const clickIndex = getCellId(pos, this.fieldWidth);
         const cookie = this._cookies.get(clickIndex);
+
+        console.log(cookie)
         if (cookie) {
             if (this._selectedCookie) {
                 this._selectedCookie.selected = false;
@@ -228,23 +232,21 @@ export class Game {
 
         const clickPosition: Vector2Array = [x, y];
         const cookie = this._selectCookie(clickPosition);
+
         if (cookie) {
             this._findWay(clickPosition);
         }
-
-        // console.log(path)
     }
 
     private _renderPath(): void {
-        const s0 = this.gridSize / 5;
         const s1 = this.gridSize / 2;
 
         for (const p of this._path) {
             this.renderer.drawRectangle(
-                p[0] * this.gridSize + s1 - s0 / 2,
-                p[1] * this.gridSize + s1 - s0 / 2,
-                s0,
-                s0,
+                p[0] * this.gridSize + s1 - this.wayPointSize / 2,
+                p[1] * this.gridSize + s1 - this.wayPointSize / 2,
+                this.wayPointSize,
+                this.wayPointSize,
                 [1, 1, 1]
             );
         }
@@ -272,6 +274,7 @@ export class Game {
 
         this._snake.update(this._time.delta);
         this._snake.draw();
+
         for (const cookie of this._cookies.values()) {
             cookie.draw();
         }
