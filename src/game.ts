@@ -138,7 +138,7 @@ export class Game {
     }
 
     private _onSnakeMoveStart = (): void => {
-        if (this._selectedCookie) {
+        if (this._selectedCookie !== null) {
             this._findWay(this._selectedCookie.position);
         }
 
@@ -181,24 +181,32 @@ export class Game {
             case 'ArrowLeft':
             case 'KeyA':
                 this._snake.setDirection(Direction.LEFT);
-                this._path = [];
+                this._resetSelection();
                 break;
             case 'KeyD':
             case 'ArrowRight':
                 this._snake.setDirection(Direction.RIGHT);
-                this._path = [];
+                this._resetSelection();
                 break;
             case 'KeyW':
             case 'ArrowUp':
                 this._snake.setDirection(Direction.TOP);
-                this._path = [];
+                this._resetSelection();
                 break;
             case 'KeyS':
             case 'ArrowDown':
                 this._snake.setDirection(Direction.BOTTOM);
-                this._path = [];
+                this._resetSelection();
                 break;
             default: break;
+        }
+    }
+
+    private _resetSelection(): void {
+        this._path = [];
+        if (this._selectedCookie) {
+            this._selectedCookie.selected = false;
+            this._selectedCookie = null;
         }
     }
 
@@ -206,17 +214,14 @@ export class Game {
         const clickIndex = getCellId(pos, this.fieldWidth);
         const cookie = this._cookies.get(clickIndex);
 
-        console.log(cookie)
+        this._resetSelection();
+
         if (cookie) {
-            if (this._selectedCookie) {
-                this._selectedCookie.selected = false;
-            }
             this._selectedCookie = cookie;
             this._selectedCookie.selected = true;
-            return true;
         }
 
-        return false;
+        return cookie !== undefined;
     }
 
     private _findWay(target: Vector2Array): void {
