@@ -15,7 +15,8 @@ export class Snake {
 
     onEat: onSnakeEat = () => undefined;
     onDie: onSnakeDie = () => undefined;
-    onMove: onSnakeMove = () => undefined;
+    onMoveStart: onSnakeMove = () => undefined;
+    onMoveEnd: onSnakeMove = () => undefined;
 
     alive: boolean = true;
     speed: number = 0.15;
@@ -66,11 +67,10 @@ export class Snake {
         const [head] = this.segments;
         if (head == cookie) { return; }
 
-        const [dx, dy] = this.movement;
         const [hx, hy] = head.position;
         const [cx, cy] = cookie.position;
 
-        if (hx + dx == cx && hy + dy == cy) {
+        if (hx == cx && hy == cy) {
             if (cookie.owner === this) {
                 this._fail();
             } else {
@@ -104,7 +104,7 @@ export class Snake {
             return;
         }
 
-        this.onMove();
+        this.onMoveStart();
 
         const [first] = this.segments;
         const [x, y] = first.position;
@@ -127,6 +127,12 @@ export class Snake {
         const last = this.segments.pop()!;
         this.segments.unshift(last);
         last.setPosition(px, py);
+
+        for (const segment of this.segments) {
+            segment.updateSpatialIndex();
+        }
+
+        this.onMoveEnd();
     }
 
     reverse(): void {

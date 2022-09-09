@@ -1,18 +1,22 @@
+import { getCellId } from './astar';
 import { Vector2Array, Vector3Array } from './const';
 import { Game } from './game';
 import { Snake } from './snake';
 
 export class Segment {
+    spatialIndex: number = 0;
     position: Vector2Array;
     color: Vector3Array;
     owner: null | Snake;
 
-    private _game: Game;
+    protected _game: Game;
 
     constructor(game: Game, x: number, y: number) {
         this.position = [x, y];
         this.color = [1, 0, 0];
-        this.owner = null
+        this.owner = null;
+        this.spatialIndex = getCellId(this.position, game.fieldWidth);
+
         this._game = game;
     }
 
@@ -33,7 +37,12 @@ export class Segment {
     setPosition(x: number, y: number): this {
         this.position[0] = x;
         this.position[1] = y;
+        this.spatialIndex = getCellId(this.position, this._game.fieldWidth);
         return this;
+    }
+
+    updateSpatialIndex(): void {
+        this.spatialIndex = getCellId(this.position, this._game.fieldWidth);
     }
 
     draw(): void {
