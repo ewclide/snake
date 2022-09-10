@@ -19,7 +19,7 @@ export class Snake {
     onMoveEnd: onSnakeMove = () => undefined;
 
     alive: boolean = true;
-    speed: number = 0.15;
+    speed: number = 0;
     segments: Segment[];
     direction: Direction = Direction.LEFT;
     movement: Vector2Array = Snake.LEFT;
@@ -40,7 +40,7 @@ export class Snake {
 
     reset(position: Vector2Array, length: number): void {
         this._time = 0
-        this.speed = 0.15;
+        this.speed = 0.08;
         this.movement = Snake.LEFT;
         this.direction = Direction.LEFT;
         this.segments = [];
@@ -49,7 +49,7 @@ export class Snake {
         for (let i = 0; i < length; i++) {
             const segment = new Segment(this._game, ...pos);
             segment.owner = this;
-            segment.setColor(Math.random(), Math.random(), Math.random());
+            segment.setColor(0, Math.random(), 0);
             this.segments.push(segment)
             pos[0] += 1;
         }
@@ -89,6 +89,7 @@ export class Snake {
 
     private _consume(cookie: Segment): void {
         cookie.owner = this
+        cookie.color = [0, toGreyScale(cookie.color)[0], 0];
         this.segments.unshift(cookie);
         this.onEat(cookie);
     }

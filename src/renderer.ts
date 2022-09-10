@@ -2,10 +2,13 @@ export class Renderer {
     readonly canvas: HTMLCanvasElement;
     readonly clearColor: number[];
     private _ctx: CanvasRenderingContext2D;
+    private _img: HTMLImageElement;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         this.clearColor = [0, 0, 0];
+
+        this._img = new Image();
         this._ctx = canvas.getContext('2d')!;
     }
 

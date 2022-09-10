@@ -1,5 +1,5 @@
 import { aStar, getCellId } from './astar';
-import { Direction, GRID_SIZE, SEGMENTS_PER_WIDTH, Vector2Array } from './const';
+import { Direction, Vector2Array } from './const';
 import { Cookie } from './cookie';
 import { Renderer } from './renderer';
 import { Segment } from './segment';
@@ -29,12 +29,12 @@ export class Game {
 
     readonly renderer: Renderer;
 
+    segmentsPerWidth: number = 120;
     cookiesCount: number = 25;
     startLength: number = 3;
     fieldWidth: number = 0;
     fieldHeight: number = 0;
     gridSize: number;
-    segmentsPerWidth: number;
     wayPointSize: number;
 
     constructor() {
@@ -44,9 +44,9 @@ export class Game {
         this._timeout = 0;
         this._time = new Time();
 
+        const dpr = window.devicePixelRatio;
         this.renderer = new Renderer(canvas);
-        this.gridSize = Math.round(canvas.width / SEGMENTS_PER_WIDTH);
-        this.segmentsPerWidth = SEGMENTS_PER_WIDTH;
+        this.gridSize = Math.round(canvas.width / this.segmentsPerWidth) * dpr;
         this.fieldWidth = Math.floor(canvas.width / this.gridSize);
         this.fieldHeight = Math.floor(canvas.height / this.gridSize);
         this.wayPointSize = Math.round(this.gridSize / 5);
@@ -224,10 +224,24 @@ export class Game {
         return cookie !== undefined;
     }
 
-    private _findWay(target: Vector2Array): void {
-        const head = this._snake.segments[0];
-        const path = aStar(head.position, target, this.fieldWidth, this.fieldHeight, this._obstacles);
-        this._path = path;
+    private _findWay(target: Vector2Array, short: boolean = false): void {
+        if (short) {
+            const head = this._snake.segments[0];
+            const tail = this._snake.segments[this._snake.length - 1];
+            const path0 = aStar(head.position, target, this.fieldWidth, this.fieldHeight, this._obstacles);
+            const path1 = aStar(tail.position, target, this.fieldWidth, this.fieldHeight, this._obstacles);
+
+            if (path0.length <= path1.length) {
+                this._path = path0;
+            } else {
+                this._snake.reverse();
+                this._path = path1;
+            }
+        } else {
+            const head = this._snake.segments[0];
+            const path = aStar(head.position, target, this.fieldWidth, this.fieldHeight, this._obstacles);
+            this._path = path;
+        }
     }
 
     private _onClick = (e: PointerEvent): void => {
@@ -239,7 +253,7 @@ export class Game {
         const cookie = this._selectCookie(clickPosition);
 
         if (cookie) {
-            this._findWay(clickPosition);
+            this._findWay(clickPosition, true);
         }
     }
 
