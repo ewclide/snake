@@ -1,15 +1,9 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
-        "target": "es5",
-        "module": "commonjs",
-        "lib": [
-            "dom",
-            "es5",
-            "es2015.collection",
-            "es2015.iterable",
-            "es2017"
-        ],
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Bundler",
         "allowJs": false,
         "downlevelIteration": true,
         "strict": true,
