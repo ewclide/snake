@@ -1,19 +1,17 @@
 {
-  "name": "ts-example",
+  "name": "snake-game",
   "version": "1.0.0",
-  "description": "ts-example",
+  "description": "snake game",
   "author": "ewclide",
-  "license": "MIT",
+  "type": "module",
+  "license": "UNLICENSED",
   "scripts": {
-    "start": "webpack-dev-server --mode development",
-    "build": "webpack --mode production"
+    "start": "vite",
+    "build": "vite build",
+    "start-server": "npx http-server dist -p 3000 -o"
   },
   "devDependencies": {
-    "ts-loader": "^6.2.1",
     "typescript": "^3.8.2",
-    "uglifyjs-webpack-plugin": "^1.2.7",
-    "webpack": "^4.29.6",
-    "webpack-cli": "^3.3.0",
-    "webpack-dev-server": "^3.11.0"
+    "vite": "^5.2.11"
   }
 }
