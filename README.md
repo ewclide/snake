@@ -9,6 +9,6 @@ $ npm start
 ```
 
 ### Result
-![demo](demo.gif)
+![demo](demo-game.gif)
 
 Enjoy playing ;)
