@@ -7,3 +7,8 @@ Simple snake game with searching short path to selected cookie.
 $ npm ci
 $ npm start
 ```
+
+### Result
+![demo](demo.gif)
+
+Enjoy playing ;)

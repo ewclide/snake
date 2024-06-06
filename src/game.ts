@@ -29,7 +29,7 @@ export class Game {
 
     readonly renderer: Renderer;
 
-    segmentsPerWidth: number = 120;
+    segmentsPerWidth: number = 50;
     cookiesCount: number = 25;
     startLength: number = 3;
     fieldWidth: number = 0;
